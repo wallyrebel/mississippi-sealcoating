@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="12" fill="#0A0A0F"/>
+  <path d="M14 10 L50 4 L50 34 Q50 52 32 60 Q14 52 14 34 Z" fill="none" stroke="#C9A84C" stroke-width="3.5"/>
+  <text x="32" y="38" text-anchor="middle" font-family="Impact, 'Bebas Neue', sans-serif" font-size="20" fill="#C9A84C">D&amp;Z</text>
+  <line x1="25" y1="46" x2="39" y2="46" stroke="#C9A84C" stroke-width="2" stroke-dasharray="3,3"/>
+</svg>

@@ -1,0 +1,64 @@
+name: Build pages
+
+on:
+  push:
+    paths:
+      - 'tools/**'
+      - 'index.html'
+      - '.github/workflows/build-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Generate pages
+        run: python3 tools/build_pages.py
+
+      - name: Validate output
+        run: |
+          python3 - <<'PY'
+          import glob, json, os, re, sys
+          pages = sorted(glob.glob('**/index.html', recursive=True)) + ['404.html']
+          errors = []
+          for p in pages:
+              html = open(p, encoding='utf-8').read()
+              for block in re.findall(r'<script type="application/ld\+json">(.*?)</script>', html, re.S):
+                  try:
+                      json.loads(block)
+                  except Exception as e:
+                      errors.append(f'{p}: bad JSON-LD: {e}')
+              for href in re.findall(r'href="(/[^"]*)"', html):
+                  path = href.split('#')[0] or '/'
+                  target = path.lstrip('/')
+                  target = os.path.join(target, 'index.html') if (path.endswith('/')) else target
+                  if not os.path.exists(target or 'index.html'):
+                      errors.append(f'{p}: broken link {href}')
+              if p != '404.html' and 'https://dandzsealcoating.com/' not in html:
+                  errors.append(f'{p}: missing dandzsealcoating.com CTA')
+          print(f'Checked {len(pages)} pages')
+          for e in errors:
+              print(e)
+          sys.exit(1 if errors else 0)
+          PY
+
+      - name: Commit generated pages
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes"
+          else
+            git commit -m "Generate service and location pages"
+            git push
+          fi

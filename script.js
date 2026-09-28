@@ -1,107 +1,91 @@
 /* ============================================
    D&Z SEALCOATING - INTERACTIVE SCRIPTS
+   Shared by the homepage and all generated pages.
    ============================================ */
 
 document.addEventListener('DOMContentLoaded', () => {
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     // ====== NAVBAR SCROLL EFFECT ======
     const navbar = document.getElementById('navbar');
-    let lastScroll = 0;
-
-    window.addEventListener('scroll', () => {
-        const currentScroll = window.pageYOffset;
-        if (currentScroll > 50) {
-            navbar.classList.add('scrolled');
-        } else {
-            navbar.classList.remove('scrolled');
-        }
-        lastScroll = currentScroll;
-    });
+    const onScroll = () => {
+        if (navbar) navbar.classList.toggle('scrolled', window.pageYOffset > 50);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
 
     // ====== MOBILE NAV TOGGLE ======
     const navToggle = document.getElementById('navToggle');
     const navLinks = document.getElementById('navLinks');
+    const closeNav = () => {
+        navLinks.classList.remove('active');
+        navToggle.classList.remove('active');
+        navToggle.setAttribute('aria-expanded', 'false');
+    };
 
-    navToggle.addEventListener('click', () => {
-        navLinks.classList.toggle('active');
-        navToggle.classList.toggle('active');
-    });
-
-    // Close mobile nav on link click
-    navLinks.querySelectorAll('a').forEach(link => {
-        link.addEventListener('click', () => {
-            navLinks.classList.remove('active');
-            navToggle.classList.remove('active');
+    if (navToggle && navLinks) {
+        navToggle.addEventListener('click', () => {
+            const open = navLinks.classList.toggle('active');
+            navToggle.classList.toggle('active', open);
+            navToggle.setAttribute('aria-expanded', String(open));
         });
-    });
+        navLinks.querySelectorAll('a').forEach(link => link.addEventListener('click', closeNav));
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeNav();
+        });
+    }
 
-    // ====== SMOOTH SCROLL ======
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    // ====== SMOOTH SCROLL (same-page links, incl. "/#section" on the homepage) ======
+    document.querySelectorAll('a[href*="#"]').forEach(anchor => {
         anchor.addEventListener('click', function (e) {
+            if (this.pathname !== window.location.pathname || !this.hash || this.hash.length < 2) return;
+            const target = document.getElementById(this.hash.slice(1));
+            if (!target) return;
             e.preventDefault();
-            const target = document.querySelector(this.getAttribute('href'));
-            if (target) {
-                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
+            target.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+            history.pushState(null, '', this.hash);
         });
     });
 
     // ====== SCROLL REVEAL ANIMATION ======
-    const revealElements = document.querySelectorAll(
-        '.service-card, .why-card, .testimonial-card, .process-step, .benefit, ' +
-        '.area-card, .contact-card, .about-content, .about-image, ' +
-        '.split-content, .split-image, .gallery-item, .section-header'
-    );
+    if (!reduceMotion && 'IntersectionObserver' in window) {
+        const revealElements = document.querySelectorAll(
+            '.service-card, .why-card, .testimonial-card, .process-step, .benefit, ' +
+            '.area-card, .contact-card, .about-content, .about-image, ' +
+            '.split-content, .split-image, .gallery-item, .section-header, .faq-item, .checklist-card'
+        );
+        revealElements.forEach(el => el.classList.add('reveal'));
 
-    revealElements.forEach(el => el.classList.add('reveal'));
+        const revealObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    revealObserver.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
 
-    const revealObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('visible');
-                revealObserver.unobserve(entry.target);
-            }
-        });
-    }, {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px'
-    });
-
-    revealElements.forEach(el => revealObserver.observe(el));
+        revealElements.forEach(el => revealObserver.observe(el));
+    }
 
     // ====== COUNTER ANIMATION ======
     const counters = document.querySelectorAll('.stat-number');
-    let countersAnimated = false;
-
-    const animateCounters = () => {
-        if (countersAnimated) return;
-        countersAnimated = true;
-
-        counters.forEach(counter => {
-            const target = parseInt(counter.dataset.target);
-            const duration = 2000;
-            const start = performance.now();
-
-            const updateCounter = (timestamp) => {
-                const elapsed = timestamp - start;
-                const progress = Math.min(elapsed / duration, 1);
-                // Ease out cubic
-                const eased = 1 - Math.pow(1 - progress, 3);
-                counter.textContent = Math.round(target * eased);
-
-                if (progress < 1) {
-                    requestAnimationFrame(updateCounter);
-                } else {
-                    counter.textContent = target;
-                }
-            };
-
-            requestAnimationFrame(updateCounter);
-        });
-    };
-
     const statsSection = document.querySelector('.hero-stats');
-    if (statsSection) {
+    if (statsSection && counters.length && !reduceMotion && 'IntersectionObserver' in window) {
+        const animateCounters = () => {
+            counters.forEach(counter => {
+                const target = parseInt(counter.dataset.target, 10);
+                const duration = 2000;
+                const start = performance.now();
+                const updateCounter = (timestamp) => {
+                    const progress = Math.min((timestamp - start) / duration, 1);
+                    const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+                    counter.textContent = Math.round(target * eased);
+                    if (progress < 1) requestAnimationFrame(updateCounter);
+                };
+                requestAnimationFrame(updateCounter);
+            });
+        };
         const statsObserver = new IntersectionObserver((entries) => {
             if (entries[0].isIntersecting) {
                 animateCounters();
@@ -113,7 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ====== HERO PARTICLES ======
     const particlesContainer = document.getElementById('particles');
-    if (particlesContainer) {
+    if (particlesContainer && !reduceMotion) {
         for (let i = 0; i < 30; i++) {
             const particle = document.createElement('div');
             particle.style.cssText = `
@@ -130,7 +114,6 @@ document.addEventListener('DOMContentLoaded', () => {
             particlesContainer.appendChild(particle);
         }
 
-        // Add particle animation keyframes
         const style = document.createElement('style');
         style.textContent = `
             @keyframes particleFloat {
@@ -143,60 +126,58 @@ document.addEventListener('DOMContentLoaded', () => {
         document.head.appendChild(style);
     }
 
-    // ====== ACTIVE NAV LINK ON SCROLL ======
-    const sections = document.querySelectorAll('section[id], header[id]');
-    const navLinksAll = document.querySelectorAll('.nav-links a[href^="#"]');
+    // ====== ACTIVE NAV LINK ON SCROLL (homepage sections) ======
+    const sectionLinks = document.querySelectorAll('.nav-links a[href^="/#"]');
+    if (sectionLinks.length && window.location.pathname === '/') {
+        const sections = document.querySelectorAll('section[id], header[id]');
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                if (window.pageYOffset >= section.offsetTop - 100) current = section.id;
+            });
+            sectionLinks.forEach(link => {
+                link.classList.toggle('active', link.getAttribute('href') === `/#${current}`);
+            });
+        }, { passive: true });
+    }
 
-    window.addEventListener('scroll', () => {
-        let current = '';
-        sections.forEach(section => {
-            const sectionTop = section.offsetTop - 100;
-            if (window.pageYOffset >= sectionTop) {
-                current = section.getAttribute('id');
-            }
-        });
-
-        navLinksAll.forEach(link => {
-            link.classList.remove('active');
-            if (link.getAttribute('href') === `#${current}`) {
-                link.classList.add('active');
-            }
-        });
-    });
-
-    // ====== CONTACT FORM (demo handler) ======
+    // ====== CONTACT FORM ======
+    // No backend: compose an email with the visitor's details so the request
+    // actually reaches the business instead of silently disappearing.
     const contactForm = document.getElementById('contactForm');
     if (contactForm) {
-        contactForm.addEventListener('submit', function(e) {
+        contactForm.addEventListener('submit', function (e) {
             e.preventDefault();
+            if (!this.reportValidity()) return;
 
-            const btn = this.querySelector('button[type="submit"]');
-            const originalText = btn.textContent;
-            btn.textContent = 'Sending...';
-            btn.disabled = true;
+            const data = new FormData(this);
+            const get = (k) => (data.get(k) || '').toString().trim();
+            const name = `${get('firstName')} ${get('lastName')}`.trim();
+            const subject = `Free estimate request - ${get('serviceType') || 'Asphalt services'}${get('city') ? ' - ' + get('city') : ''}`;
+            const body = [
+                `Name: ${name}`,
+                `Email: ${get('email')}`,
+                `Phone: ${get('phone')}`,
+                `City/Town: ${get('city')}`,
+                `Service: ${get('serviceType')}`,
+                `Property type: ${get('propertyType')}`,
+                '',
+                'Project details:',
+                get('message'),
+            ].join('\n');
 
-            // Simulate form submission
-            setTimeout(() => {
-                btn.textContent = 'Request Sent!';
-                btn.style.background = '#22c55e';
+            const to = this.dataset.email;
+            window.location.href = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
-                setTimeout(() => {
-                    btn.textContent = originalText;
-                    btn.style.background = '';
-                    btn.disabled = false;
-                    contactForm.reset();
-                }, 3000);
-            }, 1500);
+            const note = document.getElementById('formNote');
+            if (note) {
+                note.innerHTML = 'Your email app should open with your request ready to send. ' +
+                    'If it didn\'t, call <a href="tel:+16625873525">(662) 587-3525</a> or ' +
+                    '<a href="https://dandzsealcoating.com/" target="_blank" rel="noopener">request a quote online</a>.';
+            }
         });
     }
 
-    // ====== NAVBAR TOGGLE ANIMATION ======
-    const style2 = document.createElement('style');
-    style2.textContent = `
-        .nav-toggle.active span:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
-        .nav-toggle.active span:nth-child(2) { opacity: 0; }
-        .nav-toggle.active span:nth-child(3) { transform: rotate(-45deg) translate(5px, -5px); }
-        .nav-links a.active { color: var(--gold) !important; }
-    `;
-    document.head.appendChild(style2);
+    // ====== FOOTER YEAR ======
+    document.querySelectorAll('[data-year]').forEach(el => { el.textContent = new Date().getFullYear(); });
 });

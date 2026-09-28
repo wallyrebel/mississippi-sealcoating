@@ -484,7 +484,7 @@ def location_page(kind, key, idx):
 
     towns_line = ""
     if extra_towns:
-        towns_line = f"<p>We also serve {', '.join(extra_towns[:-1]) + (' and ' if len(extra_towns) > 1 else '') + extra_towns[-1]}{' and the rest of ' + county_label if kind == 'city' else ''}.</p>"
+        towns_line = f"<p>We also serve {', '.join(extra_towns[:-1]) + (' and ' if len(extra_towns) > 1 else '') + extra_towns[-1]}{', plus the rest of ' + county_label if kind == 'city' else ''}.</p>"
 
     city_list = ""
     if kind == "county" and cities_in(key):
